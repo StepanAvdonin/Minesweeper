@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <Windows.h>
 #define CELL_SIZE 30
 #define COLUMNS 30
 #define ROWS 30
@@ -13,6 +14,11 @@ public:
         this->x = x;
         this->y = y;
     }
+
+     int GetType()
+    {
+         return rand()%4;
+    }
 private:
     bool is_flagged;
     bool is_mine;
@@ -23,6 +29,8 @@ private:
 
     int x;
     int y;
+
+
 };
 
 class Field
@@ -41,14 +49,25 @@ public:
 
     void draw(sf::RenderWindow& window)
     {
-        sf::RectangleShape cell_shape(sf::Vector2f(CELL_SIZE - 1, CELL_SIZE - 1));
-        cell_shape.setFillColor(sf::Color(255, 255, 255, 200));
+        sf::Texture texture;
+        texture.loadFromFile("Cells.png");
+
+        sf::Sprite cell_sprt;
+        cell_sprt.setTexture(texture);
+
+        sf::Vector2i position;
+        position = sf::Mouse::getPosition(window);
+
+        int type = 0; 
         for (size_t i = 0; i < COLUMNS; i++)
         {
             for (size_t j = 0; j < ROWS; j++)
             {
-                cell_shape.setPosition(CELL_SIZE * i, CELL_SIZE * j);
-                window.draw(cell_shape);
+                    Cell temp = cells.at(CELL_SIZE * i + j);
+                    type = temp.GetType();
+                cell_sprt.setTextureRect(sf::IntRect(type*30, 0, 30, 30));
+                cell_sprt.setPosition((CELL_SIZE + 1) * i, (CELL_SIZE+1) * j);
+                window.draw(cell_sprt);
             }
         }
     }
@@ -58,7 +77,7 @@ private:
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(COLUMNS*CELL_SIZE, ROWS * CELL_SIZE), "Minesweeper");
+    sf::RenderWindow window(sf::VideoMode(COLUMNS*CELL_SIZE- 1, ROWS * CELL_SIZE-1), "Minesweeper");
     Field field;
    
     
@@ -74,6 +93,7 @@ int main()
         
 
         field.draw(window);
+        Sleep(1000);
 
         window.display();
         window.clear();

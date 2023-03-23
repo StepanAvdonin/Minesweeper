@@ -9,15 +9,15 @@
 class Cell
 {
 public:
-    Cell(int x, int y) 
+    Cell(sf::Vector2i x_y) 
     {
-        this->x = x;
-        this->y = y;
+        this->x_y = x_y;
         is_open = false;
         is_flagged = false;
+        mines_around = 5; // test
     }
 
-     int GetType()                     // designations of types:
+     int GetType() // for Draw         // designations of types:
     {                                  // 0 .. 8 - mines_around
          if (is_open)                  // 9 - flag
          {                             // 10 - closed cell
@@ -33,6 +33,16 @@ public:
          }
     }
 
+     sf::Vector2i GetCoordinates()
+     {
+         return x_y;
+     }
+
+     void Open()
+     {
+         is_open = true;
+     }
+
 private:
     bool is_flagged;
     bool is_mine;
@@ -41,8 +51,7 @@ private:
 
     int mines_around;
 
-    int x;
-    int y;
+    sf::Vector2i x_y;
 };
 
 class Field
@@ -54,12 +63,13 @@ public:
         {
             for (size_t j = 0; j < ROWS; j++)
             {
-                cells.push_back(Cell(j, i));
+                sf::Vector2i temp(i, j);
+                cells.push_back(Cell(temp));
             }
         }
     }
 
-    void draw(sf::RenderWindow& window)
+    void Draw(sf::RenderWindow& window)
     {
         sf::Texture texture;
         texture.loadFromFile("Cells.png");
@@ -80,6 +90,20 @@ public:
             }
         }
     }
+
+    void Find(sf::Vector2i temp)
+    {
+
+        for (auto &iter : cells)
+        {
+            if (iter.GetCoordinates() == temp)
+            {
+                iter.Open();
+                break;
+            }
+        }
+    }
+
 private:
     std::vector<Cell> cells;
 };
@@ -92,18 +116,20 @@ int main()
     
     while (window.isOpen())
     {
-        sf::Event event;
-        while (window.pollEvent(event))
+        sf::Vector2i position;
+        for (sf::Event event; window.pollEvent(event);)
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+            if (event.type == sf::Event::MouseMoved)
+            {
+                position = (sf::Mouse::getPosition(window)) /CELL_SIZE; // mouse coordinates for cell
+                field.Find(position);
+            }
         }
 
-        sf::Vector2i position;
-        position = sf::Mouse::getPosition(window);
-        position / CELL_SIZE;
-        field.draw(window);
-        Sleep(1000);
+        field.Draw(window);
+        //Sleep(1000);
 
         window.display();
         window.clear();

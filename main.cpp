@@ -9,16 +9,30 @@
 class Cell
 {
 public:
-    Cell(int x, int y)
+    Cell(int x, int y) 
     {
         this->x = x;
         this->y = y;
+        is_open = false;
+        is_flagged = false;
     }
 
-     int GetType()
-    {
-         return rand()%4;
+     int GetType()                     // designations of types:
+    {                                  // 0 .. 8 - mines_around
+         if (is_open)                  // 9 - flag
+         {                             // 10 - closed cell
+             return mines_around;      
+         }                             
+         else if(is_flagged)
+         {
+             return 9;
+         }
+         else
+         {
+             return 10;
+         }
     }
+
 private:
     bool is_flagged;
     bool is_mine;
@@ -29,8 +43,6 @@ private:
 
     int x;
     int y;
-
-
 };
 
 class Field
@@ -55,16 +67,13 @@ public:
         sf::Sprite cell_sprt;
         cell_sprt.setTexture(texture);
 
-        sf::Vector2i position;
-        position = sf::Mouse::getPosition(window);
-
         int type = 0; 
         for (size_t i = 0; i < COLUMNS; i++)
         {
             for (size_t j = 0; j < ROWS; j++)
             {
-                    Cell temp = cells.at(CELL_SIZE * i + j);
-                    type = temp.GetType();
+                Cell temp = cells.at(CELL_SIZE * i + j);
+                type = temp.GetType();
                 cell_sprt.setTextureRect(sf::IntRect(type*30, 0, 30, 30));
                 cell_sprt.setPosition((CELL_SIZE + 1) * i, (CELL_SIZE+1) * j);
                 window.draw(cell_sprt);
@@ -90,8 +99,9 @@ int main()
                 window.close();
         }
 
-        
-
+        sf::Vector2i position;
+        position = sf::Mouse::getPosition(window);
+        position / CELL_SIZE;
         field.draw(window);
         Sleep(1000);
 

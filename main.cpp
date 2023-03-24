@@ -2,7 +2,7 @@
 #include <vector>
 #include <Windows.h>
 #define CELL_SIZE 30      
-#define COLUMNS 15   
+#define COLUMNS 25  
 #define ROWS 25
 
 
@@ -14,7 +14,7 @@ public:
         this->x_y = x_y;
         is_open = false;
         is_flagged = false;
-        mines_around = 2; // test
+        mines_around = 1; // test
     }
 
      int GetType() // for Draw         // designations of types:
@@ -40,7 +40,19 @@ public:
 
      void Open()
      {
+         if(!is_flagged)
          is_open = true;
+     }
+
+     void SetFlag()
+     {
+         if (!is_open)
+         {
+             if (!is_flagged)
+                 is_flagged = true;
+             else if(is_flagged)
+                 is_flagged = false;
+         }
      }
 
 private:
@@ -91,7 +103,7 @@ public:
         }
     }
 
-    void Find(sf::Vector2i temp)
+    void OpenCell(sf::Vector2i temp)
     {
 
         for (auto &iter : cells)
@@ -99,6 +111,19 @@ public:
             if (iter.GetCoordinates() == temp)
             {
                 iter.Open();
+                break;
+            }
+        }
+    }
+
+    void FlagCell(sf::Vector2i temp)
+    {
+
+        for (auto& iter : cells)
+        {
+            if (iter.GetCoordinates() == temp)
+            {
+                iter.SetFlag();
                 break;
             }
         }
@@ -116,15 +141,22 @@ int main()
     
     while (window.isOpen())
     {
-        sf::Vector2i position;
         for (sf::Event event; window.pollEvent(event);)
         {
             if (event.type == sf::Event::Closed)
                 window.close();
-            if (event.type == sf::Event::MouseMoved)
+            if (event.type == sf::Event::MouseButtonPressed)
             {
-                position = (sf::Mouse::getPosition(window)) /(CELL_SIZE+1); // mouse coordinates for cell
-                field.Find(position);
+                if (event.mouseButton.button == sf::Mouse::Left)
+                {
+                    sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1),event.mouseButton.y / (CELL_SIZE + 1));
+                    field.OpenCell(position);
+                }
+                else if (event.mouseButton.button == sf::Mouse::Right)
+                {
+                    sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1), event.mouseButton.y / (CELL_SIZE + 1));
+                    field.FlagCell(position);
+                }
             }
         }
 

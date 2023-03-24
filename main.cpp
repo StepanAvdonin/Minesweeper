@@ -1,9 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <Windows.h>
-#define CELL_SIZE 30
-#define COLUMNS 30
-#define ROWS 30
+#define CELL_SIZE 30      
+#define COLUMNS 15   
+#define ROWS 25
 
 
 class Cell
@@ -14,7 +14,7 @@ public:
         this->x_y = x_y;
         is_open = false;
         is_flagged = false;
-        mines_around = 5; // test
+        mines_around = 2; // test
     }
 
      int GetType() // for Draw         // designations of types:
@@ -82,7 +82,7 @@ public:
         {
             for (size_t j = 0; j < ROWS; j++)
             {
-                Cell temp = cells.at(CELL_SIZE * i + j);
+                Cell temp = cells.at(/*CELL_SIZE*/ ROWS* i + j);
                 type = temp.GetType();
                 cell_sprt.setTextureRect(sf::IntRect(type*30, 0, 30, 30));
                 cell_sprt.setPosition((CELL_SIZE + 1) * i, (CELL_SIZE+1) * j);
@@ -110,7 +110,7 @@ private:
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(COLUMNS*CELL_SIZE- 1, ROWS * CELL_SIZE-1), "Minesweeper");
+    sf::RenderWindow window(sf::VideoMode(COLUMNS*(CELL_SIZE+1), ROWS * (CELL_SIZE+1)), "Minesweeper");
     Field field;
    
     
@@ -123,7 +123,7 @@ int main()
                 window.close();
             if (event.type == sf::Event::MouseMoved)
             {
-                position = (sf::Mouse::getPosition(window)) /CELL_SIZE; // mouse coordinates for cell
+                position = (sf::Mouse::getPosition(window)) /(CELL_SIZE+1); // mouse coordinates for cell
                 field.Find(position);
             }
         }

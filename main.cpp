@@ -1,11 +1,11 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <Windows.h>
-#include <iostream>
+#include <random>
 #define CELL_SIZE 30      
-#define COLUMNS 10
-#define ROWS 10
-#define MINES 10
+#define COLUMNS 30
+#define ROWS 30
+#define MINES 50
 
 class Cell
 {
@@ -16,17 +16,17 @@ public:
         isOpen = false;
         isFlagged = false;
         isMine = false;
-        mines_around = 1; // test
-    }
+        minesAround = 0;
+    }  
 
      int getType() // for Draw         // designations of types:
-    {                                  // 0 .. 8 - mines_around
+    {                     // 0 .. 8 - mines_around
          if (isOpen)                   // 9 - flag
          {    
              if (isMine)                // Test showing of mines
                  return 12;
              else                       // 10 - closed cell
-             return mines_around;       // 11 - mine
+             return minesAround;       // 11 - mine
          }                              // 12 - active mine
          else if(isFlagged)
          {
@@ -65,12 +65,32 @@ public:
          isMine = true;
      }
 
+     void addMinesAround()
+     {
+         minesAround++;
+     }
+
+     int getMinesAround()
+     {
+             return minesAround;
+     }
+
+     bool getMine()
+     {
+         return isMine;
+     }
+
+     bool getOpen()
+     {
+         return isOpen;
+     }
+
 private:
     bool isFlagged;
     bool isMine;
     bool isOpen;
 
-    int mines_around;
+    int minesAround;
 
     sf::Vector2i x_y;
 };
@@ -103,7 +123,7 @@ public:
         {
             for (size_t j = 0; j < ROWS; j++)
             {
-                Cell temp = cells.at(/*CELL_SIZE*/ ROWS* i + j);
+                Cell temp = cells.at(ROWS* i + j);
                 type = temp.getType();
                 cell_sprt.setTextureRect(sf::IntRect(type*30, 0, 30, 30));
                 cell_sprt.setPosition((CELL_SIZE + 1) * i, (CELL_SIZE+1) * j);
@@ -114,67 +134,99 @@ public:
 
     void openCell(sf::Vector2i temp)
     {
-
-        for (auto &iter : cells)
-        {
-            if (iter.getCoordinates() == temp)
-            {
-                iter.open();
-                break;
-            }
-        }
+        getCell(temp.x, temp.y)->open();
     }
 
+    Cell* getCell(int x, int y)
+    {
+        return &cells.at(x * COLUMNS + y);
+    }
+         
     void flagCell(sf::Vector2i temp)
     {
-
-        for (auto& iter : cells)
-        {
-            if (iter.getCoordinates() == temp)
-            {
-                iter.setFlag();
-                break;
-            }
-        }
+        getCell(temp.x, temp.y)->setFlag();
     }
 
-    void setMines()
+    void setMines(sf::Vector2i firstClick)
     {
         std::vector<sf::Vector2i> mines;
         sf::Vector2i temp;
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dist1(0, COLUMNS-1);
+        std::uniform_int_distribution<> dist2(0, ROWS-1);
     
-        temp.x = rand() % COLUMNS;       // Need to change random function
-        temp.y = rand() % ROWS;
+        temp.x = dist1(gen);       
+        temp.y = dist2(gen);
 
         while (MINES > mines.size())      // getting unic coordinates of mines
         {
             bool stop = false;
+
+            if ((temp == firstClick))
+            {
+                temp.x = dist1(gen);
+                temp.y = dist2(gen);
+                continue;
+            }
+
             for (auto iter : mines)
             {
-                    if (iter == temp)
-                    {
-                        temp.x = rand() % COLUMNS;
-                        temp.y = rand() % ROWS;
-                        stop = true;
-                        break;
-                    } 
+
+                if ((iter == temp))
+                {
+                    temp.x = dist1(gen);
+                    temp.y = dist2(gen);
+                    stop = true;
+                    break;
+                } 
             }
             if (stop)
                 continue;
-            mines.push_back(temp);
-        }
 
-        for (auto iter : mines)         // record coordinates
+            mines.push_back(temp);
+            getCell(temp.x, temp.y)->setMine();
+        } 
+
+        for (auto &iter : cells)   // add mines around
         {
-            for (auto& i : cells)
+            int a = iter.getCoordinates().x;
+            int b = iter.getCoordinates().y;
+            if(getCell(a,b)->getMine())
+            for (int i = -1; i < 2; i++)
             {
-                if (i.getCoordinates() == iter)
+                for (int j = -1; j < 2; j++)
                 {
-                    i.setMine();
-                    break;
+                    if (a+i < 0 || b+j < 0 || a+i == COLUMNS || b+j == ROWS || i == 0 && j == 0 )
+                    {
+                        continue;
+                    }
+                    getCell(a+i, b+j)->addMinesAround();
                 }
             }
-        }      
+        }
+    }
+
+    void autoOpen()
+    {
+        for (auto& iter : cells)
+        {
+            int a = iter.getCoordinates().x;
+            int b = iter.getCoordinates().y;
+            if (getCell(a, b)->getOpen() && (getCell(a, b)->getMinesAround() == 0))
+                for (int i = -1; i < 2; i++)
+                {
+                    for (int j = -1; j < 2; j++)
+                    {
+                        if (a + i < 0 || b + j < 0 || a + i == COLUMNS || b + j == ROWS || i == 0 && j == 0)
+                        {
+                            continue;
+                        }
+                        getCell(a + i, b + j)->open();
+                    }
+                }
+        }
     }
 
 private:
@@ -185,8 +237,8 @@ int main()
 {
     sf::RenderWindow window(sf::VideoMode(COLUMNS*(CELL_SIZE+1), ROWS * (CELL_SIZE+1)), "Minesweeper");
     Field field;
-    field.setMines();
-    
+
+    int started = false;
     while (window.isOpen())
     {
         for (sf::Event event; window.pollEvent(event);)
@@ -199,6 +251,12 @@ int main()
                 {
                     sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1),event.mouseButton.y / (CELL_SIZE + 1));
                     field.openCell(position);
+                    if (!started)
+                    {
+                        field.setMines(position);
+                        started = true;
+                        break;
+                    }
                 }
                 else if (event.mouseButton.button == sf::Mouse::Right)
                 {
@@ -206,10 +264,11 @@ int main()
                     field.flagCell(position);
                 }
             }
+            
         }
-
+        field.autoOpen();
         field.draw(window);
-        //Sleep(1000);
+        //Sleep(100);
 
         window.display();
         window.clear();

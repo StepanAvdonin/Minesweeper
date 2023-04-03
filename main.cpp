@@ -2,10 +2,17 @@
 #include <vector>
 #include <Windows.h>
 #include <random>
+#include <math.h>
 #define CELL_SIZE 30      
-#define COLUMNS 30
-#define ROWS 30
-#define MINES 50
+#define COLUMNS 10
+#define ROWS 10
+#define MINES 5
+#define HAT 60
+                                // bug: when you open the last cell(without mine), 
+                                //program shows that you have been blown up
+
+bool finish = false;
+bool win = false;
 
 class Cell
 {
@@ -45,8 +52,16 @@ public:
 
      void open()
      {
-         if(!isFlagged)
-         isOpen = true;
+         if (!isFlagged)
+         {
+             isOpen = true;
+             if (isMine)
+             {
+                 win = false;
+                 finish = true;
+             }
+         }
+
      }
 
      void setFlag()
@@ -85,6 +100,14 @@ public:
          return isOpen;
      }
 
+     void reset()
+     {
+         isFlagged = false;
+         isMine = false;
+         isOpen = false;
+         minesAround = 0;
+     }
+
 private:
     bool isFlagged;
     bool isMine;
@@ -112,11 +135,38 @@ public:
 
     void draw(sf::RenderWindow& window)
     {
-        sf::Texture texture;
-        texture.loadFromFile("Cells.png");
+        sf::Texture hatTexture;
+        hatTexture.loadFromFile("Hat.png");
 
-        sf::Sprite cell_sprt;
-        cell_sprt.setTexture(texture);
+        sf::Sprite hatSprt;
+        hatSprt.setTexture(hatTexture);
+
+        sf::RectangleShape hatBack;
+        sf::Vector2f hatSize = { (float)COLUMNS* (CELL_SIZE + 1), HAT };
+        hatBack.setSize(hatSize);
+        hatBack.setFillColor(sf::Color(255,255,255,190));
+        hatBack.setOutlineColor(sf::Color(255, 255, 255, 150));
+        hatBack.setOutlineThickness(-5);
+
+        window.draw(hatBack);
+
+        int number = 136;
+
+        for (int i = 2; i > -1; i--)
+        {
+
+            int counter = number % (10);
+            hatSprt.setTextureRect(sf::IntRect(counter * 26, 0, 26, 50));
+            hatSprt.setPosition(5 + 26 *i, 5);
+            window.draw(hatSprt);
+            number /= 10;
+        }
+
+        sf::Texture cellTexture;
+        cellTexture.loadFromFile("Cells.png");
+
+        sf::Sprite cellSprt;
+        cellSprt.setTexture(cellTexture);
 
         int type = 0; 
         for (size_t i = 0; i < COLUMNS; i++)
@@ -125,10 +175,18 @@ public:
             {
                 Cell temp = cells.at(ROWS* i + j);
                 type = temp.getType();
-                cell_sprt.setTextureRect(sf::IntRect(type*30, 0, 30, 30));
-                cell_sprt.setPosition((CELL_SIZE + 1) * i, (CELL_SIZE+1) * j);
-                window.draw(cell_sprt);
+                cellSprt.setTextureRect(sf::IntRect(type*30, 0, 30, 30));
+                cellSprt.setPosition((CELL_SIZE + 1) * i, (CELL_SIZE+1) * j + HAT);
+                window.draw(cellSprt);
             }
+        }
+    }
+
+    void openAll()
+    {
+        for (auto& iter : cells)
+        {
+            iter.open();
         }
     }
 
@@ -229,13 +287,37 @@ public:
         }
     }
 
+    void stopGame()
+    {
+        int notMines = COLUMNS * ROWS - MINES;
+        for (auto iter : cells)
+        {
+            if (iter.getOpen())
+            notMines--;
+        }
+        if (notMines == 0)
+        {
+            win = true;
+            finish = true;
+        }   
+    }
+
+    void reset()
+    {
+        for (auto& iter : cells)
+        {
+            iter.reset();
+        }
+    }
+
 private:
     std::vector<Cell> cells;
 };
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(COLUMNS*(CELL_SIZE+1), ROWS * (CELL_SIZE+1)), "Minesweeper");
+    sf::RenderWindow window(sf::VideoMode(COLUMNS*(CELL_SIZE+1), 
+                                            ROWS * (CELL_SIZE+1) + HAT), "Minesweeper");
     Field field;
 
     int started = false;
@@ -249,7 +331,8 @@ int main()
             {
                 if (event.mouseButton.button == sf::Mouse::Left)
                 {
-                    sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1),event.mouseButton.y / (CELL_SIZE + 1));
+                    sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1),
+                                            (event.mouseButton.y - HAT) / (CELL_SIZE + 1));
                     field.openCell(position);
                     if (!started)
                     {
@@ -260,19 +343,38 @@ int main()
                 }
                 else if (event.mouseButton.button == sf::Mouse::Right)
                 {
-                    sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1), event.mouseButton.y / (CELL_SIZE + 1));
+                    sf::Vector2i position(event.mouseButton.x / (CELL_SIZE + 1), 
+                                            (event.mouseButton.y - HAT) / (CELL_SIZE + 1));
                     field.flagCell(position);
                 }
             }
             
         }
         field.autoOpen();
+        field.stopGame();
         field.draw(window);
-        //Sleep(100);
-
         window.display();
+        if (finish)
+        {
+            field.openAll();
+            field.draw(window);
+            window.display();
+            Sleep(1000);
+            bool continueGame = true;
+            if (continueGame == false)
+            {
+                window.close();
+            }
+            else
+            {
+                field.reset();
+                finish = false;
+                started = false;
+            }
+        } 
+
+        //Sleep(100);
         window.clear();
     }
-
     return 0;
 }

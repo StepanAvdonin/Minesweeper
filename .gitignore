@@ -4,8 +4,10 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # My files to ignore
-Minesweeper.sln
-Minesweeper.vcxproj
+*.dll
+/Minesweeper.sln
+/Minesweeper.vcxproj
+/Minesweeper.vcxproj.filters
 
 # User-specific files
 *.rsuser
